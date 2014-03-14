@@ -1,3 +1,10 @@
 *.o
 *.so
 pamusb-check
+NOTE
+cscope.files
+cscope.out
+pammulti.conf
+pamsingle.conf
+session.vim
+tags

@@ -53,6 +53,7 @@ static void pusb_conf_options_get_from(t_pusb_options *opts,
 			&(opts->deny_remote));
 }
 
+#if 0
 static int pusb_conf_parse_options(t_pusb_options *opts,
 		xmlDoc *doc,
 		const char *user,
@@ -80,8 +81,9 @@ static int pusb_conf_parse_options(t_pusb_options *opts,
 	}
 	return (1);
 }
+#endif
 
-static int pusb_conf_device_get_property(t_pusb_options *opts,
+static int pusb_conf_device_get_property(t_pusb_device *dev,
 		xmlDoc *doc,
 		const char *property,
 		char *store,
@@ -91,29 +93,30 @@ static int pusb_conf_device_get_property(t_pusb_options *opts,
 	size_t		xpath_len;
 	int			retval;
 
-	xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(opts->device.name) + \
+    /* TODO: check dev->name */
+	xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(dev->name) + \
 				strlen(property) + 1;
 	xpath = xmalloc(xpath_len);
 	memset(xpath, 0x00, xpath_len);
-	snprintf(xpath, xpath_len, CONF_DEVICE_XPATH, opts->device.name,
+	snprintf(xpath, xpath_len, CONF_DEVICE_XPATH, dev->name,
 			property);
 	retval = pusb_xpath_get_string(doc, xpath, store, size);
 	xfree(xpath);
 	return (retval);
 }
 
-static int pusb_conf_parse_device(t_pusb_options *opts, xmlDoc *doc)
+static int pusb_conf_parse_device(t_pusb_device *dev, xmlDoc *doc)
 {
-	pusb_conf_device_get_property(opts, doc, "vendor", opts->device.vendor,
-				sizeof(opts->device.vendor));
-	pusb_conf_device_get_property(opts, doc, "model", opts->device.model,
-				sizeof(opts->device.model));
-	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device.serial,
-				sizeof(opts->device.serial)))
+	pusb_conf_device_get_property(dev, doc, "vendor", dev->vendor,
+				sizeof(dev->vendor));
+	pusb_conf_device_get_property(dev, doc, "model", dev->model,
+				sizeof(dev->model));
+	if (!pusb_conf_device_get_property(dev, doc, "serial", dev->serial,
+				sizeof(dev->serial)))
 		return (0);
-	pusb_conf_device_get_property(opts, doc, "volume_uuid",
-			opts->device.volume_uuid,
-			sizeof(opts->device.volume_uuid));
+	pusb_conf_device_get_property(dev, doc, "volume_uuid",
+			dev->volume_uuid,
+			sizeof(dev->volume_uuid));
 	return (1);
 }
 
@@ -167,23 +170,41 @@ int pusb_conf_parse(const char *file, t_pusb_options *opts,
 	}
 	snprintf(device_xpath, sizeof(device_xpath), CONF_USER_XPATH, user,
 			"device");
-	retval = pusb_xpath_get_string(doc,
+    printf("device xpath %s\n", device_xpath);
+	retval = pusb_xpath_get_string_array(doc,
 			device_xpath,
-			opts->device.name,
-			sizeof(opts->device.name));
-	if (!retval || !pusb_conf_parse_device(opts, doc))
-	{
-		log_error("No device configured for user \"%s\".\n", user);
-		xmlFreeDoc(doc);
-		xmlCleanupParser();
-		return (0);
-	}
-	if (!pusb_conf_parse_options(opts, doc, user, service))
-	{
-		xmlFreeDoc(doc);
-		xmlCleanupParser();
-		return (0);
-	}
+			opts->device,
+			sizeof(opts->device[0].name));
+
+    {
+        int i, ret;
+        for(i=0;i<5;i++) {
+            printf("device %d name %s\n", i, opts->device[i].name);
+            ret = pusb_conf_parse_device(&(opts->device[i]), doc);
+            if(ret)
+                printf("device found: vendor %s\nmodel %s\nserial %s\n", opts->device[i].vendor, opts->device[i].model,
+                opts->device[i].serial);
+        }
+    }
+    printf("esco\n");
+	/*if (!retval || !pusb_conf_parse_device(opts, doc))*/
+	/*{*/
+		/*log_error("No device configured for user \"%s\".\n", user);*/
+		/*xmlFreeDoc(doc);*/
+		/*xmlCleanupParser();*/
+		/*return (0);*/
+	/*}*/
+    /*else {*/
+        /*printf("device found: vendor %s\nmodel %s\nserial %s\n", opts->device.vendor, opts->device.model,*/
+                /*opts->device.serial);*/
+    /*}*/
+    exit(0);
+	/*if (!pusb_conf_parse_options(opts, doc, user, service))*/
+	/*{*/
+		/*xmlFreeDoc(doc);*/
+		/*xmlCleanupParser();*/
+		/*return (0);*/
+	/*}*/
 	xmlFreeDoc(doc);
 	xmlCleanupParser();
 	return (1);

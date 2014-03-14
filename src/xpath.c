@@ -79,6 +79,45 @@ static int pusb_xpath_strip_string(char *dest, const char *src,
 	return (1);
 }
 
+int pusb_xpath_get_string_array(xmlDocPtr doc, const char *path,
+		t_pusb_device devs[5], size_t size)
+{
+	xmlXPathObject	*result = NULL;
+	xmlChar			*result_string = NULL;
+    xmlNodeSetPtr   node;
+    int i;
+    
+	if (!(result = pusb_xpath_match(doc, path)))
+		return (0);
+    else {
+        node = result->nodesetval;
+
+        if(node->nodeNr > 5) {
+            xmlXPathFreeObject(result);
+            log_debug("Syntax error: %s: too much records found\n", path);
+            return (0);
+        }
+
+        for(i=0;i<node->nodeNr;i++) {
+            xmlNodePtr np = node->nodeTab[i];
+
+            result_string = xmlNodeListGetString(doc, np->xmlChildrenNode, 1);
+            if (!pusb_xpath_strip_string(devs[i].name, (const char *)result_string, size))
+            {
+                log_debug("Result for %s (%s) is too long (max: %d)\n",
+                        path, (const char *)result_string, size);
+                xmlFree(result_string);
+                xmlXPathFreeObject(result);
+                return (0);
+            }
+            xmlFree(result_string);
+        }
+    }
+    xmlXPathFreeObject(result);
+    return (1);
+}
+        
+
 int pusb_xpath_get_string(xmlDocPtr doc, const char *path,
 		char *value, size_t size)
 {
