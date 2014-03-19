@@ -26,6 +26,7 @@
 #include "pad.h"
 #include "device.h"
 
+#if 0
 static int pusb_device_connected(t_pusb_options *opts, DBusConnection *dbus)
 {
 	char	*udi = NULL;
@@ -47,6 +48,33 @@ static int pusb_device_connected(t_pusb_options *opts, DBusConnection *dbus)
 	log_info("Device \"%s\" is connected (good).\n", opts->device.name);
 	return (1);
 }
+#endif
+
+static int pusb_device_connected_array(t_pusb_options *opts, DBusConnection *dbus)
+{
+	char	*udi = NULL;
+    int i, found=0;
+
+    for( i=0; i< opts->devnum; i++ ) {
+        log_debug("Searching for \"%s\" in the hardware database...\n",
+                opts->devices[i].name);
+        udi = pusb_hal_find_item(dbus,
+                "DriveSerial", opts->devices[i].serial,
+                "DriveVendor", opts->devices[i].vendor,
+                "DriveModel", opts->devices[i].model,
+                NULL);
+        if (!udi)
+        {
+          log_error("Device \"%s\" is not connected.\n",
+                    opts->devices[i].name);
+          continue;
+        }
+        xfree(udi);
+        log_info("Device \"%s\" is connected (good).\n", opts->devices[i].name);
+        found = 1;
+    }
+	return (found);
+}
 
 int pusb_device_check(t_pusb_options *opts,
 		const char *user)
@@ -58,7 +86,8 @@ int pusb_device_check(t_pusb_options *opts,
 	if (!(dbus = pusb_hal_dbus_connect()))
 		return (0);
 
-	if (!pusb_device_connected(opts, dbus))
+	/*if (!pusb_device_connected(opts, dbus))*/
+	if (!pusb_device_connected_array(opts, dbus))
 	{
 		pusb_hal_dbus_disconnect(dbus);
 		return (0);
