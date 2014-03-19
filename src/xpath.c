@@ -85,7 +85,7 @@ int pusb_xpath_get_string_array(xmlDocPtr doc, const char *path,
 	xmlXPathObject	*result = NULL;
 	xmlChar			*result_string = NULL;
     xmlNodeSetPtr   node;
-    int i;
+    int i,ret;
     
 	if (!(result = pusb_xpath_match(doc, path)))
 		return (0);
@@ -113,8 +113,9 @@ int pusb_xpath_get_string_array(xmlDocPtr doc, const char *path,
             xmlFree(result_string);
         }
     }
+    ret = node->nodeNr;
     xmlXPathFreeObject(result);
-    return (1);
+    return ret;
 }
         
 
